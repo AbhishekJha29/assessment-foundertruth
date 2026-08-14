@@ -14,15 +14,36 @@ const app = express();
 // Security HTTP headers
 app.use(helmet());
 
-// Enable Cross-Origin Resource Sharing
+// Flexible CORS Configuration
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+  : ['*'];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server, health checks)
+      if (!origin) return callback(null, true);
+
+      // Wildcard or explicit match
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Automatically permit all *.vercel.app preview and production URLs
+      if (origin.endsWith('.vercel.app') || origin.startsWith('http://localhost')) {
+        return callback(null, true);
+      }
+
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   })
 );
 
-// Auto-connect MongoDB middleware (crucial for Vercel serverless lifecycle)
+// Auto-connect MongoDB middleware (essential for Vercel serverless functions)
 app.use(async (req, res, next) => {
   try {
     await connectDB();
