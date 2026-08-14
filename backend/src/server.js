@@ -8,7 +8,7 @@ const app = require('./app');
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB and start HTTP listener
+// Connect to MongoDB and start HTTP listener for local development
 const startServer = async () => {
   try {
     await connectDB();
@@ -35,4 +35,10 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Only listen on a port when running locally (NOT on Vercel)
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+// Export the Express app for Vercel's serverless runtime
+module.exports = app;

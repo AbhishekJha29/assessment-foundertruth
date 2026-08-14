@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const feedRoutes = require('./routes/feedRoutes');
 const bookmarkRoutes = require('./routes/bookmarkRoutes');
@@ -21,6 +22,21 @@ app.use(
   })
 );
 
+// Auto-connect MongoDB middleware (crucial for Vercel serverless lifecycle)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('[DB Connection Error]:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Database connection failed. Please verify MONGODB_URI and ensure 0.0.0.0/0 is whitelisted in MongoDB Atlas.',
+      error: err.message
+    });
+  }
+});
+
 // Development request logging (disabled in production and test)
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
@@ -29,6 +45,15 @@ if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Root welcome / health route for quick sanity check
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'FounderTruth Backend API is live on Vercel.',
+    healthCheck: '/api/v1/health'
+  });
+});
 
 // Health Check Route
 app.get('/api/v1/health', (req, res) => {
