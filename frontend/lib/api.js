@@ -1,5 +1,19 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+// Clean and normalize API Base URL
+const getApiBaseUrl = () => {
+  let base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+
+  // Remove trailing slashes
+  base = base.replace(/\/+$/, '');
+
+  // If user entered only domain (e.g. https://my-backend.vercel.app), append /api/v1
+  if (!base.endsWith('/api/v1')) {
+    base = `${base}/api/v1`;
+  }
+
+  return base;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Dispatch custom event for cross-component auth state synchronization
@@ -117,7 +131,10 @@ export const apiFetch = async (endpoint, options = {}) => {
     if (err.status) {
       throw err;
     }
-    throw new Error(err.message || 'Unable to connect to the backend server. Please make sure it is running on port 5000.');
+    console.error(`[API Connection Error] Failed calling ${url}:`, err);
+    throw new Error(
+      err.message || `Unable to connect to the backend at ${API_BASE_URL}. Please verify your API URL and CORS settings.`
+    );
   }
 };
 
